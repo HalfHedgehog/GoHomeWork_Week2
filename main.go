@@ -2,8 +2,12 @@ package main
 
 import (
 	"GoHomeWork_week2/Config"
+	"time"
 )
 
 func main() {
-	Config.Serve.Start()
+	go Config.Serve.Start()
+	time.Sleep(5 * time.Second)
+	Config.Serve.Close()
+	time.Sleep(5 * time.Second)
 }

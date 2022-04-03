@@ -12,6 +12,7 @@ import (
 )
 
 type Server struct {
+	closeChan   chan int
 	status      string
 	MysqlConfig string
 	RedisConfig string
@@ -19,24 +20,28 @@ type Server struct {
 
 func (obj *Server) Open() {
 	obj.status = "open"
-	fmt.Printf("Server is open , MysqlConfig:%s , RedisConfig : %s", obj.MysqlConfig, obj.RedisConfig)
+	obj.closeChan = make(chan int, 1)
+	fmt.Printf("Server is open , MysqlConfig:%s , RedisConfig : %s \n", obj.MysqlConfig, obj.RedisConfig)
 }
 
 func (obj *Server) Close() {
 	obj.status = "close"
+	obj.closeChan <- 1
 }
 
 func (obj *Server) Start() {
 	g := new(errgroup.Group)
 
+	//启动mysql
 	g.Go(func() error {
 		time.Sleep(1 * time.Second)
-		obj.RedisConfig = "RedisConfig"
+		obj.MysqlConfig = "127.0.0.1:3306"
 		return nil
 	})
+	//启动Redis
 	g.Go(func() error {
 		time.Sleep(2 * time.Second)
-		obj.RedisConfig = "RedisConfig"
+		obj.RedisConfig = "127.0.0.1:6379"
 		return nil
 	})
 
@@ -45,4 +50,11 @@ func (obj *Server) Start() {
 		fmt.Println(err)
 	}
 	obj.Open()
+
+	select {
+	case <-obj.closeChan:
+		obj.RedisConfig = "close"
+		obj.MysqlConfig = "close"
+		fmt.Printf("I'm closed , Mysql : %s , Redis : %s", obj.MysqlConfig, obj.RedisConfig)
+	}
 }
